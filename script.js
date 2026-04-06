@@ -38,12 +38,9 @@ async function loadDefaultData() {
 }
 
 function processData(booksCsv, ratingsCsv) {
-  const books = parseCsv(booksCsv);
+  const books = parseCsv(booksCsv).map(normalizeBookRow);
   const ratings = parseCsv(ratingsCsv)
-    .map((row) => ({
-      ...row,
-      rating: Number(row.rating),
-    }))
+    .map(normalizeRatingRow)
     .filter((row) => Number.isFinite(row.rating) && row.rating >= 1 && row.rating <= 10);
 
   if (!books.length) {
@@ -55,6 +52,27 @@ function processData(booksCsv, ratingsCsv) {
   renderTable(model.bookRows);
   renderStats(model);
   setStatus(`Daten geladen: ${books.length} Buecher, ${ratings.length} Bewertungen.`);
+}
+
+function normalizeBookRow(row) {
+  return {
+    book_id: String(row.book_id || "").trim(),
+    title: String(row.title || "").trim(),
+    author: String(row.author || "").trim(),
+    genre: String(row.genre || "").trim(),
+    start_date: String(row.start_date || "").trim(),
+    end_date: String(row.end_date || "").trim(),
+    proposed_by: String(row.proposed_by || "").trim(),
+    cycle: String(row.cycle || "").trim(),
+  };
+}
+
+function normalizeRatingRow(row) {
+  return {
+    book_id: String(row.book_id || "").trim(),
+    person: String(row.person || "").trim(),
+    rating: Number(row.rating),
+  };
 }
 
 function buildModel(books, ratings) {
@@ -119,22 +137,81 @@ function renderTable(rows) {
     .map((row) => {
       const ratingCells = KNOWN_MEMBERS.map((member) => {
         const value = row.memberRatings.get(member);
-        return `<td>${value ?? "-"}</td>`;
+        return `<td>${renderRatingBadge(value)}</td>`;
       }).join("");
 
       return `
       <tr>
-        <td>${escapeHtml(row.title || "-")}</td>
-        <td>${escapeHtml(formatDateRange(row.start_date, row.end_date))}</td>
-        <td>${escapeHtml(row.genre || "-")}</td>
-        <td>${escapeHtml(row.proposed_by || "-")}</td>
-        <td>${row.avg === null ? "-" : row.avg.toFixed(2)}</td>
+        <td>
+          <button
+            type="button"
+            class="book-link"
+            data-book-id="${escapeHtml(row.book_id)}"
+            aria-label="Details fuer ${escapeHtml(row.title || "Buch")} anzeigen"
+          >
+            ${escapeHtml(row.title || "-")}
+          </button>
+        </td>
+        <td>${renderRatingBadge(row.avg, true)}</td>
         ${ratingCells}
-        <td><button type="button" class="table-detail-btn">Details</button></td>
       </tr>
     `;
     })
     .join("");
+
+  const bookButtons = els.tableBody.querySelectorAll(".book-link");
+  bookButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const bookId = button.dataset.bookId;
+      setStatus(`Detailsansicht fuer Buch-ID ${bookId} folgt im naechsten Schritt.`);
+    });
+  });
+}
+
+function renderRatingBadge(value, isTotal = false) {
+  if (!Number.isFinite(value)) {
+    return '<span class="rating-empty">-</span>';
+  }
+
+  const clamped = clamp(value, 0, 10);
+  const rgb = colorByScore(clamped);
+  const bgColor = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+  const textColor = getReadableTextColor(rgb);
+  const classes = isTotal ? "rating-badge rating-badge-total" : "rating-badge";
+
+  return `<span class="${classes}" style="background:${bgColor};color:${textColor};">${clamped.toFixed(1)}</span>`;
+}
+
+function colorByScore(score) {
+  const minColor = [220, 53, 69];
+  const midColor = [255, 167, 38];
+  const maxColor = [40, 167, 69];
+  const clamped = clamp(score, 0, 10);
+
+  if (clamped <= 5) {
+    const ratioLow = Math.pow(clamped / 5, 1.15);
+    return mixRgb(minColor, midColor, ratioLow);
+  }
+
+  const ratioHigh = Math.pow((clamped - 5) / 5, 0.8);
+  return mixRgb(midColor, maxColor, ratioHigh);
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function mixRgb(from, to, ratio) {
+  return from.map((fromValue, index) => {
+    const toValue = to[index];
+    return Math.round(fromValue + (toValue - fromValue) * ratio);
+  });
+}
+
+function getReadableTextColor(rgb) {
+  const [r, g, b] = rgb;
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 150 ? "#05140f" : "#f4f8ff";
 }
 
 function renderStats(model) {
