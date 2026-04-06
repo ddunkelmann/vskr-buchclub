@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VSKR Buchclub</title>
+    <meta
+      name="description"
+      content="Historie und Statistiken des VSKR Buchclubs (Versenker)."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"
+      defer
+    ></script>
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <div class="bg-shape bg-shape-1" aria-hidden="true"></div>
+    <div class="bg-shape bg-shape-2" aria-hidden="true"></div>
+
+    <header class="hero">
+      <div class="hero-top">
+        <div class="hero-brand">
+          <p class="hero-kicker">VERSENKER</p>
+          <h1>VSKR Buchclub Statistik</h1>
+          <p class="hero-text">
+            Historie seit Februar 2024. Monatliche Auswahl, gemeinsame
+            Bewertungen, klare Auswertung.
+          </p>
+        </div>
+
+        <aside class="logo-slot" aria-label="Logo Bereich">
+          <p class="logo-label">Club-Logo (PNG)</p>
+          <div class="logo-frame">
+            <span>Logo-Platzhalter</span>
+          </div>
+          <label class="logo-upload" for="club-logo">
+            PNG hochladen (UI)
+            <input id="club-logo" type="file" accept="image/png" />
+          </label>
+        </aside>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card filters" aria-labelledby="filter-heading">
+        <div class="filters-head">
+          <h2 id="filter-heading">Filter und Fokus</h2>
+          <p>Reine UI-Vorbereitung fuer persoenliche Highlights und Drilldown.</p>
+        </div>
+
+        <div class="filter-row">
+          <p class="filter-label">Wertungen hervorheben:</p>
+          <div class="person-pills" aria-label="Personenfilter">
+            <button type="button" class="pill is-active">Alle</button>
+            <button type="button" class="pill">Gordon</button>
+            <button type="button" class="pill">Benjamin</button>
+            <button type="button" class="pill">Dennis</button>
+            <button type="button" class="pill">Simon</button>
+            <button type="button" class="pill">Tom</button>
+            <button type="button" class="pill">Jonah</button>
+            <button type="button" class="pill">Michi</button>
+          </div>
+        </div>
+
+        <div class="filter-row compact">
+          <label class="field field-compact">
+            <span>Genre</span>
+            <select>
+              <option>Alle Genres</option>
+            </select>
+          </label>
+          <label class="field field-compact">
+            <span>Durchgang</span>
+            <select>
+              <option>Alle Durchgaenge</option>
+            </select>
+          </label>
+          <label class="field field-compact">
+            <span>Sortierung</span>
+            <select>
+              <option>Standard</option>
+            </select>
+          </label>
+        </div>
+
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="card table-focus" aria-labelledby="book-table-heading">
+        <div class="section-headline">
+          <h2 id="book-table-heading">Buch-Historie und Bewertungen</h2>
+          <span class="focus-chip">Hauptansicht</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Titel</th>
+                <th>Zeitraum</th>
+                <th>Genre</th>
+                <th>Vorgeschlagen von</th>
+                <th>Gesamt</th>
+                <th>Gordon</th>
+                <th>Benjamin</th>
+                <th>Dennis</th>
+                <th>Simon</th>
+                <th>Tom</th>
+                <th>Jonah</th>
+                <th>Michi</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="book-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card details-planned" aria-labelledby="detail-heading">
+        <div class="section-headline">
+          <h2 id="detail-heading">Detailansicht (geplant)</h2>
+          <span class="focus-chip secondary">Naechster Schritt</span>
+        </div>
+        <div class="detail-grid">
+          <article class="detail-media" aria-label="Buchcover Bereich">
+            <div class="cover-placeholder">Cover / Moodbild</div>
+          </article>
+          <article class="detail-content">
+            <h3>Ausgewaehltes Buch</h3>
+            <p class="muted">Titel, Autor, Kurzbeschreibung und Kontext.</p>
+            <ul class="detail-meta">
+              <li>Goodreads Score: Platzhalter</li>
+              <li>Kauf-Link (z.B. Thalia/Amazon): Platzhalter</li>
+              <li>Edition / Seitenzahl / Erscheinungsjahr: Platzhalter</li>
+            </ul>
+            <div class="detail-actions">
+              <button type="button" class="ghost-btn">Goodreads</button>
+              <button type="button" class="ghost-btn">Kaufen</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="card stats-secondary" aria-labelledby="stats-heading">
+        <h2 id="stats-heading">Statistiken</h2>
+        <p class="muted">
+          Zweite Ebene: Auswertung nach Top/Flop, Personen, Genres und Streuung.
+        </p>
+
+        <div class="stats-grid">
+          <article>
+            <h3>Top 3</h3>
+            <ol id="top3"></ol>
+          </article>
+          <article>
+            <h3>Flop 3</h3>
+            <ol id="flop3"></ol>
+          </article>
+          <article>
+            <h3>Durchschnitt nach Genre</h3>
+            <ul id="genre-avg"></ul>
+          </article>
+          <article>
+            <h3>Durchschnitt nach Vorschlag</h3>
+            <ul id="proposer-avg"></ul>
+          </article>
+          <article>
+            <h3>Personen-Ranking</h3>
+            <ol id="person-ranking"></ol>
+          </article>
+          <article>
+            <h3>Durchschnitt pro Durchgang</h3>
+            <ul id="cycle-avg"></ul>
+          </article>
+          <article>
+            <h3>Groesste Differenz</h3>
+            <ul id="largest-spread"></ul>
+          </article>
+          <article>
+            <h3>Groesste Einigkeit</h3>
+            <ul id="smallest-spread"></ul>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
