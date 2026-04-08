@@ -119,31 +119,6 @@
         </div>
       </section>
 
-      <section class="card details-planned" aria-labelledby="detail-heading">
-        <div class="section-headline">
-          <h2 id="detail-heading">Detailansicht (geplant)</h2>
-          <span class="focus-chip secondary">Naechster Schritt</span>
-        </div>
-        <div class="detail-grid">
-          <article class="detail-media" aria-label="Buchcover Bereich">
-            <div class="cover-placeholder">Cover / Moodbild</div>
-          </article>
-          <article class="detail-content">
-            <h3>Ausgewaehltes Buch</h3>
-            <p class="muted">Titel, Autor, Kurzbeschreibung und Kontext.</p>
-            <ul class="detail-meta">
-              <li>Goodreads Score: Platzhalter</li>
-              <li>Kauf-Link (z.B. Thalia/Amazon): Platzhalter</li>
-              <li>Edition / Seitenzahl / Erscheinungsjahr: Platzhalter</li>
-            </ul>
-            <div class="detail-actions">
-              <button type="button" class="ghost-btn">Goodreads</button>
-              <button type="button" class="ghost-btn">Kaufen</button>
-            </div>
-          </article>
-        </div>
-      </section>
-
       <section class="card stats-secondary" aria-labelledby="stats-heading">
         <h2 id="stats-heading">Statistiken</h2>
         <p class="muted">
@@ -186,5 +161,95 @@
         </div>
       </section>
     </main>
+
+    <div
+      id="book-detail-modal"
+      class="modal"
+      hidden
+      aria-hidden="true"
+    >
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <section
+        class="modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-book-title"
+      >
+        <button
+          type="button"
+          class="modal-close"
+          id="modal-close"
+          aria-label="Popup schliessen"
+        >
+          ×
+        </button>
+
+        <div class="modal-layout">
+          <article class="modal-media">
+            <div id="modal-cover-fallback" class="modal-cover-fallback" aria-hidden="true">
+              <span id="modal-cover-fallback-title"></span>
+            </div>
+            <img id="modal-cover-image" class="modal-cover-image" alt="" hidden />
+          </article>
+
+          <article class="modal-content">
+            <p id="modal-genre" class="modal-kicker"></p>
+            <h2 id="modal-book-title"></h2>
+            <p id="modal-book-author" class="modal-author"></p>
+
+            <div class="modal-actions">
+              <a
+                id="modal-buy-link"
+                class="ghost-btn modal-link"
+                href="#"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                Buch kaufen
+              </a>
+            </div>
+
+            <div class="modal-rating-grid">
+              <div class="modal-rating-card">
+                <span class="modal-rating-label">Goodreads</span>
+                <strong id="modal-goodreads-rating" class="modal-rating-value"></strong>
+              </div>
+              <div class="modal-rating-card accent">
+                <span class="modal-rating-label">VSKR Durchschnitt</span>
+                <strong id="modal-vskr-rating" class="modal-rating-value"></strong>
+              </div>
+            </div>
+
+            <div class="modal-member-scores">
+              <p class="modal-member-scores-title">Einzelwertungen (absteigend)</p>
+              <ul id="modal-member-ratings" class="modal-member-scores-list"></ul>
+            </div>
+
+            <dl class="modal-meta-grid">
+              <div>
+                <dt>Vorgeschlagen von</dt>
+                <dd id="modal-proposer"></dd>
+              </div>
+              <div>
+                <dt>Cycle</dt>
+                <dd id="modal-cycle"></dd>
+              </div>
+              <div>
+                <dt>Lesezeitraum</dt>
+                <dd id="modal-date-range"></dd>
+              </div>
+              <div>
+                <dt>Erscheinungsjahr</dt>
+                <dd id="modal-publication-year"></dd>
+              </div>
+              <div>
+                <dt>Seitenzahl</dt>
+                <dd id="modal-page-count"></dd>
+              </div>
+            </dl>
+          </article>
+        </div>
+      </section>
+    </div>
   </body>
 </html>

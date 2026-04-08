@@ -28,6 +28,10 @@ body {
   min-height: 100vh;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 .bg-shape {
   position: fixed;
   z-index: -1;
@@ -330,25 +334,269 @@ tbody tr:hover {
 .book-link {
   background: none;
   border: 0;
-  border-radius: 8px;
-  padding: 0;
+  border-radius: 999px;
+  padding: 0.16rem 0.52rem;
   color: var(--accent);
   font-family: "Archivo Black", sans-serif;
   font-size: 1.02rem;
   line-height: 1.2;
   letter-spacing: 0.015em;
   font-weight: 800;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
   text-align: left;
-  text-decoration: underline;
-  text-decoration-color: rgba(71, 214, 163, 0.45);
-  text-underline-offset: 0.2em;
+  text-decoration: none;
+  border: 1px solid rgba(61, 100, 160, 0.7);
+  background: rgba(18, 36, 66, 0.75);
 }
 
 .book-link:hover,
 .book-link:focus-visible {
   color: #8ab4ff;
-  text-decoration-color: #8ab4ff;
+  border-color: #79a8f4;
+  background: rgba(23, 48, 88, 0.86);
   outline: none;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 7, 16, 0.74);
+  backdrop-filter: blur(8px);
+}
+
+.modal-panel {
+  position: relative;
+  width: min(980px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  border: 1px solid rgba(95, 143, 227, 0.32);
+  border-radius: 24px;
+  padding: 1.2rem;
+  background:
+    radial-gradient(circle at top left, rgba(65, 112, 205, 0.2), transparent 34%),
+    linear-gradient(180deg, rgba(13, 24, 44, 0.98) 0%, rgba(10, 18, 33, 0.98) 100%);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.52);
+  animation: revealUp 220ms ease-out both;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 999px;
+  padding: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #dce8ff;
+  background: rgba(17, 29, 52, 0.92);
+  border: 1px solid #41659a;
+}
+
+.modal-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.modal-media,
+.modal-content {
+  border: 1px solid #27406b;
+  border-radius: 18px;
+  background: rgba(12, 25, 48, 0.92);
+}
+
+.modal-media {
+  padding: 0.9rem;
+}
+
+.modal-cover-image,
+.modal-cover-fallback {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 14px;
+}
+
+.modal-cover-image {
+  display: block;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #09111f;
+}
+
+.modal-cover-fallback {
+  display: grid;
+  align-items: end;
+  padding: 1rem;
+  background:
+    linear-gradient(180deg, rgba(94, 150, 247, 0.26), rgba(7, 14, 28, 0.1)),
+    linear-gradient(145deg, #19335f 0%, #0c1830 100%);
+  box-shadow: inset 0 0 0 1px rgba(145, 178, 233, 0.14);
+}
+
+.modal-cover-fallback span {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 12px;
+  padding: 0.35rem 0.6rem;
+  font-family: "Archivo Black", sans-serif;
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  line-height: 1.05;
+  color: #f1f6ff;
+  background: rgba(9, 20, 38, 0.74);
+  border: 1px solid rgba(131, 170, 234, 0.38);
+  text-wrap: balance;
+}
+
+.modal-content {
+  padding: 1rem;
+}
+
+.modal-kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #89b4ff;
+}
+
+.modal-content h2 {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.4rem, 2.4vw, 2.1rem);
+  line-height: 1.1;
+}
+
+.modal-author {
+  margin: 0.45rem 0 0;
+  font-size: 1.08rem;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.modal-actions {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.modal-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.modal-rating-grid {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.modal-rating-card {
+  border: 1px solid #2d4672;
+  border-radius: 16px;
+  padding: 0.85rem;
+  background: linear-gradient(180deg, rgba(17, 33, 60, 0.95), rgba(12, 22, 40, 0.95));
+}
+
+.modal-rating-card.accent {
+  border-color: rgba(91, 156, 246, 0.52);
+  background: linear-gradient(180deg, rgba(18, 45, 85, 0.95), rgba(10, 22, 40, 0.95));
+}
+
+.modal-rating-label {
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ab5e0;
+}
+
+.modal-rating-value {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: "Archivo Black", sans-serif;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  color: #f5f8ff;
+}
+
+.modal-member-scores {
+  margin-top: 0.8rem;
+  border: 1px solid rgba(66, 103, 161, 0.5);
+  border-radius: 14px;
+  padding: 0.75rem;
+  background: rgba(11, 25, 47, 0.76);
+}
+
+.modal-member-scores-title {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9bb8e5;
+  font-weight: 800;
+}
+
+.modal-member-scores-list {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.modal-member-scores-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.modal-meta-grid {
+  margin: 1rem 0 0;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.modal-meta-grid div {
+  border-top: 1px solid rgba(112, 140, 190, 0.18);
+  padding-top: 0.8rem;
+}
+
+.modal-meta-grid dt {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #87a3cf;
+  font-weight: 800;
+}
+
+.modal-meta-grid dd {
+  margin: 0.35rem 0 0;
+  color: #f2f7ff;
+  font-weight: 700;
 }
 
 .rating-badge,
@@ -444,6 +692,14 @@ tbody tr:hover {
   border: 1px solid #40618f;
 }
 
+.ghost-btn:hover,
+.ghost-btn:focus-visible,
+.modal-close:hover,
+.modal-close:focus-visible {
+  filter: brightness(1.08);
+  outline: none;
+}
+
 .stats-secondary {
   opacity: 0.92;
   border-color: #223351;
@@ -500,6 +756,18 @@ ul {
     padding: 0.85rem;
   }
 
+  .modal {
+    padding: 0.6rem;
+  }
+
+  .modal-panel {
+    padding: 0.9rem;
+    border-radius: 18px;
+  }
+
+  .modal-layout,
+  .modal-rating-grid,
+  .modal-meta-grid,
   .detail-grid {
     grid-template-columns: 1fr;
   }

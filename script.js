@@ -19,8 +19,32 @@ const els = {
   cycleAvg: document.getElementById("cycle-avg"),
   largestSpread: document.getElementById("largest-spread"),
   smallestSpread: document.getElementById("smallest-spread"),
+  modal: document.getElementById("book-detail-modal"),
+  modalClose: document.getElementById("modal-close"),
+  modalCoverImage: document.getElementById("modal-cover-image"),
+  modalCoverFallback: document.getElementById("modal-cover-fallback"),
+  modalCoverFallbackTitle: document.getElementById("modal-cover-fallback-title"),
+  modalGenre: document.getElementById("modal-genre"),
+  modalBookTitle: document.getElementById("modal-book-title"),
+  modalBookAuthor: document.getElementById("modal-book-author"),
+  modalBuyLink: document.getElementById("modal-buy-link"),
+  modalGoodreadsRating: document.getElementById("modal-goodreads-rating"),
+  modalVskrRating: document.getElementById("modal-vskr-rating"),
+  modalMemberRatings: document.getElementById("modal-member-ratings"),
+  modalProposer: document.getElementById("modal-proposer"),
+  modalCycle: document.getElementById("modal-cycle"),
+  modalDateRange: document.getElementById("modal-date-range"),
+  modalPublicationYear: document.getElementById("modal-publication-year"),
+  modalPageCount: document.getElementById("modal-page-count"),
 };
 
+const appState = {
+  model: null,
+  activeBookId: null,
+  lastFocusedElement: null,
+};
+
+initDetailModal();
 setStatus("Lade Daten aus dem data-Ordner ...");
 loadDefaultData();
 
@@ -49,6 +73,7 @@ function processData(booksCsv, ratingsCsv) {
   }
 
   const model = buildModel(books, ratings);
+  appState.model = model;
   renderTable(model.bookRows);
   renderStats(model);
   setStatus(`Daten geladen: ${books.length} Buecher, ${ratings.length} Bewertungen.`);
@@ -64,6 +89,11 @@ function normalizeBookRow(row) {
     end_date: String(row.end_date || "").trim(),
     proposed_by: String(row.proposed_by || "").trim(),
     cycle: String(row.cycle || "").trim(),
+    cover_image: readFirstField(row, ["cover_image", "cover_url", "image_url"]),
+    buy_link: readFirstField(row, ["buy_link", "buy_url", "purchase_url"]),
+    goodreads_rating: toOptionalNumber(readFirstField(row, ["goodreads_rating", "goodreads", "goodreads_score"])),
+    publication_year: readFirstField(row, ["publication_year", "published_year", "year"]),
+    page_count: readFirstField(row, ["page_count", "pages", "pagecount"]),
   };
 }
 
@@ -163,9 +193,145 @@ function renderTable(rows) {
   bookButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const bookId = button.dataset.bookId;
-      setStatus(`Detailsansicht fuer Buch-ID ${bookId} folgt im naechsten Schritt.`);
+      openBookDetail(bookId, button);
     });
   });
+}
+
+function initDetailModal() {
+  if (!els.modal) {
+    return;
+  }
+
+  els.modal.addEventListener("click", (event) => {
+    const target = event.target;
+    if (target instanceof HTMLElement && target.dataset.closeModal === "true") {
+      closeBookDetail();
+    }
+  });
+
+  els.modalClose?.addEventListener("click", closeBookDetail);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !els.modal?.hidden) {
+      closeBookDetail();
+    }
+  });
+}
+
+function openBookDetail(bookId, triggerElement) {
+  const book = appState.model?.bookRows.find((entry) => entry.book_id === bookId);
+
+  if (!book || !els.modal) {
+    setStatus("Buchdetails konnten nicht geladen werden.");
+    return;
+  }
+
+  appState.activeBookId = bookId;
+  appState.lastFocusedElement = triggerElement instanceof HTMLElement ? triggerElement : document.activeElement;
+
+  populateBookDetail(book);
+
+  els.modal.hidden = false;
+  els.modal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+  els.modalClose?.focus();
+}
+
+function closeBookDetail() {
+  if (!els.modal || els.modal.hidden) {
+    return;
+  }
+
+  els.modal.hidden = true;
+  els.modal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+  appState.activeBookId = null;
+
+  if (appState.lastFocusedElement instanceof HTMLElement) {
+    appState.lastFocusedElement.focus();
+  }
+}
+
+function populateBookDetail(book) {
+  els.modalGenre.textContent = book.genre || "Genre offen";
+  els.modalBookTitle.textContent = book.title || "Unbekanntes Buch";
+  els.modalBookAuthor.textContent = book.author && book.author !== "Unbekannt"
+    ? book.author
+    : "Autor derzeit nicht hinterlegt";
+
+  const buyLink = book.buy_link || createBuyLink(book.title, book.author);
+  els.modalBuyLink.href = buyLink;
+  els.modalBuyLink.setAttribute(
+    "aria-label",
+    `Kauf-Link fuer ${book.title || "dieses Buch"} in neuem Tab oeffnen`
+  );
+
+  els.modalGoodreadsRating.textContent = formatScaleValue(book.goodreads_rating, 5, "Noch nicht hinterlegt");
+  els.modalVskrRating.textContent = formatScaleValue(book.avg, 10, "Noch keine VSKR-Wertung");
+  renderModalMemberRatings(book);
+  els.modalProposer.textContent = formatMetaValue(book.proposed_by);
+  els.modalCycle.textContent = formatMetaValue(book.cycle);
+  els.modalDateRange.textContent = formatDateRange(book.start_date, book.end_date);
+  els.modalPublicationYear.textContent = formatMetaValue(book.publication_year);
+  els.modalPageCount.textContent = book.page_count ? `${book.page_count} Seiten` : "k.A.";
+
+  renderBookCover(book);
+}
+
+function renderBookCover(book) {
+  const hasCover = Boolean(book.cover_image);
+
+  els.modalCoverFallbackTitle.textContent = book.title || "VSKR";
+
+  if (!hasCover) {
+    els.modalCoverImage.hidden = true;
+    els.modalCoverImage.removeAttribute("src");
+    els.modalCoverImage.alt = "";
+    els.modalCoverFallback.hidden = false;
+    return;
+  }
+
+  els.modalCoverImage.src = book.cover_image;
+  els.modalCoverImage.alt = `Cover von ${book.title || "dem Buch"}`;
+  els.modalCoverImage.hidden = false;
+  els.modalCoverFallback.hidden = true;
+
+  els.modalCoverImage.onerror = () => {
+    els.modalCoverImage.hidden = true;
+    els.modalCoverImage.removeAttribute("src");
+    els.modalCoverFallback.hidden = false;
+  };
+}
+
+function renderModalMemberRatings(book) {
+  if (!els.modalMemberRatings) {
+    return;
+  }
+
+  const sorted = [...book.memberRatings.entries()]
+    .filter(([, value]) => Number.isFinite(value))
+    .sort((a, b) => {
+      if (b[1] !== a[1]) {
+        return b[1] - a[1];
+      }
+
+      return a[0].localeCompare(b[0], "de-DE");
+    });
+
+  if (!sorted.length) {
+    els.modalMemberRatings.innerHTML = "<li>Keine Einzelwertungen vorhanden</li>";
+    return;
+  }
+
+  els.modalMemberRatings.innerHTML = sorted
+    .map(([member, value]) => `
+      <li>
+        <span>${escapeHtml(member)}</span>
+        ${renderRatingBadge(value)}
+      </li>
+    `)
+    .join("");
 }
 
 function renderRatingBadge(value, isTotal = false) {
@@ -335,9 +501,62 @@ function toHalfYearLabel(dateText) {
 }
 
 function formatDateRange(start, end) {
-  const s = start || "?";
-  const e = end || "?";
+  const s = formatDate(start);
+  const e = formatDate(end);
   return `${s} bis ${e}`;
+}
+
+function formatDate(dateText) {
+  const date = new Date(dateText);
+  if (Number.isNaN(date.getTime())) {
+    return dateText || "k.A.";
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatScaleValue(value, scale, fallback) {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return `${value.toFixed(2)} / ${scale}`;
+}
+
+function formatMetaValue(value) {
+  return value && value !== "-/-" ? value : "k.A.";
+}
+
+function createBuyLink(title, author) {
+  const parts = [title, author].filter((value) => value && value !== "Unbekannt");
+  const query = encodeURIComponent(parts.join(" "));
+  return `https://www.thalia.de/suche?sq=${query}`;
+}
+
+function readFirstField(row, keys) {
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== null) {
+      const value = String(row[key]).trim();
+      if (value) {
+        return value;
+      }
+    }
+  }
+
+  return "";
+}
+
+function toOptionalNumber(value) {
+  if (value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function setStatus(text) {

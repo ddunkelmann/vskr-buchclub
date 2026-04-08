@@ -25,7 +25,18 @@ Alternativ koennen zwei eigene CSV-Dateien direkt ueber die Upload-Felder gelade
 
 Buecherdatei:
 - book_id,title,author,genre,start_date,end_date,proposed_by,cycle
+- Optional fuer den Detail-Popup: cover_image,buy_link,goodreads_rating,publication_year,page_count
 
 Bewertungsdatei:
 - book_id,person,rating
+
+## Detail-Popup
+
+Ein Klick auf einen Buchtitel in der Tabelle oeffnet ein Popup mit Cover, Titel, Autor, Kauf-Link,
+Goodreads-Wertung, VSKR-Durchschnitt sowie Erscheinungsjahr und Seitenzahl.
+
+Wenn optionale Felder in der Buecher-CSV fehlen, werden sichere Fallbacks angezeigt:
+- cover_image: stilisierte Cover-Kachel statt Bild
+- buy_link: automatisch erzeugte Thalia-Suche aus Titel und Autor
+- goodreads_rating, publication_year, page_count: Anzeige als k.A. bzw. nicht hinterlegt
 
