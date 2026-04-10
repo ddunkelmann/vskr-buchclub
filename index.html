@@ -59,34 +59,37 @@
         <div class="filter-row">
           <p class="filter-label">Wertungen hervorheben:</p>
           <div class="person-pills" aria-label="Personenfilter">
-            <button type="button" class="pill is-active">Alle</button>
-            <button type="button" class="pill">Gordon</button>
-            <button type="button" class="pill">Benjamin</button>
-            <button type="button" class="pill">Dennis</button>
-            <button type="button" class="pill">Simon</button>
-            <button type="button" class="pill">Tom</button>
-            <button type="button" class="pill">Jonah</button>
-            <button type="button" class="pill">Michi</button>
+            <button type="button" class="pill is-active" data-person="Alle">Alle</button>
+            <button type="button" class="pill" data-person="Gordon">Gordon</button>
+            <button type="button" class="pill" data-person="Benjamin">Benjamin</button>
+            <button type="button" class="pill" data-person="Dennis">Dennis</button>
+            <button type="button" class="pill" data-person="Simon">Simon</button>
+            <button type="button" class="pill" data-person="Tom">Tom</button>
+            <button type="button" class="pill" data-person="Jonah">Jonah</button>
+            <button type="button" class="pill" data-person="Michi">Michi</button>
           </div>
         </div>
 
         <div class="filter-row compact">
           <label class="field field-compact">
             <span>Genre</span>
-            <select>
+            <select id="genre-filter">
               <option>Alle Genres</option>
             </select>
           </label>
           <label class="field field-compact">
             <span>Durchgang</span>
-            <select>
+            <select id="cycle-filter">
               <option>Alle Durchgaenge</option>
             </select>
           </label>
           <label class="field field-compact">
             <span>Sortierung</span>
-            <select>
-              <option>Standard</option>
+            <select id="sort-filter">
+              <option value="avg-desc">Durchschnittswertung absteigend</option>
+              <option value="avg-asc">Durchschnittswertung aufsteigend</option>
+              <option value="date-asc">Lesedatum aufsteigend</option>
+              <option value="date-desc">Lesedatum absteigend</option>
             </select>
           </label>
         </div>
@@ -184,19 +187,18 @@
           ×
         </button>
 
+        <header class="modal-header">
+          <p id="modal-genre" class="modal-kicker"></p>
+          <h2 id="modal-book-title"></h2>
+          <p id="modal-book-author" class="modal-author"></p>
+        </header>
+
         <div class="modal-layout">
-          <article class="modal-media">
-            <div id="modal-cover-fallback" class="modal-cover-fallback" aria-hidden="true">
-              <span id="modal-cover-fallback-title"></span>
-            </div>
+          <article id="modal-media" class="modal-media" hidden>
             <img id="modal-cover-image" class="modal-cover-image" alt="" hidden />
           </article>
 
           <article class="modal-content">
-            <p id="modal-genre" class="modal-kicker"></p>
-            <h2 id="modal-book-title"></h2>
-            <p id="modal-book-author" class="modal-author"></p>
-
             <div class="modal-actions">
               <a
                 id="modal-buy-link"

@@ -8,9 +8,25 @@ const KNOWN_MEMBERS = [
   "Michi",
 ];
 
+const ALL_PERSONS = "Alle";
+const ALL_GENRES_VALUE = "__all_genres";
+const ALL_CYCLES_VALUE = "__all_cycles";
+
+const SORT_OPTIONS = {
+  AVG_DESC: "avg-desc",
+  AVG_ASC: "avg-asc",
+  DATE_ASC: "date-asc",
+  DATE_DESC: "date-desc",
+};
+
 const els = {
   status: document.getElementById("status"),
   tableBody: document.getElementById("book-table-body"),
+  bookTable: document.querySelector(".table-focus table"),
+  personPills: [...document.querySelectorAll(".person-pills .pill")],
+  genreFilter: document.getElementById("genre-filter"),
+  cycleFilter: document.getElementById("cycle-filter"),
+  sortFilter: document.getElementById("sort-filter"),
   top3: document.getElementById("top3"),
   flop3: document.getElementById("flop3"),
   genreAvg: document.getElementById("genre-avg"),
@@ -21,9 +37,8 @@ const els = {
   smallestSpread: document.getElementById("smallest-spread"),
   modal: document.getElementById("book-detail-modal"),
   modalClose: document.getElementById("modal-close"),
+  modalMedia: document.getElementById("modal-media"),
   modalCoverImage: document.getElementById("modal-cover-image"),
-  modalCoverFallback: document.getElementById("modal-cover-fallback"),
-  modalCoverFallbackTitle: document.getElementById("modal-cover-fallback-title"),
   modalGenre: document.getElementById("modal-genre"),
   modalBookTitle: document.getElementById("modal-book-title"),
   modalBookAuthor: document.getElementById("modal-book-author"),
@@ -42,8 +57,15 @@ const appState = {
   model: null,
   activeBookId: null,
   lastFocusedElement: null,
+  filters: {
+    selectedPerson: ALL_PERSONS,
+    selectedGenre: ALL_GENRES_VALUE,
+    selectedCycle: ALL_CYCLES_VALUE,
+    selectedSort: SORT_OPTIONS.AVG_DESC,
+  },
 };
 
+initFilterBar();
 initDetailModal();
 setStatus("Lade Daten aus dem data-Ordner ...");
 loadDefaultData();
@@ -74,9 +96,209 @@ function processData(booksCsv, ratingsCsv) {
 
   const model = buildModel(books, ratings);
   appState.model = model;
-  renderTable(model.bookRows);
+  populateFilterOptions(model);
+  applyFiltersAndRender();
   renderStats(model);
-  setStatus(`Daten geladen: ${books.length} Buecher, ${ratings.length} Bewertungen.`);
+}
+
+function initFilterBar() {
+  if (els.sortFilter) {
+    els.sortFilter.value = appState.filters.selectedSort;
+    els.sortFilter.addEventListener("change", () => {
+      appState.filters.selectedSort = els.sortFilter.value;
+      applyFiltersAndRender();
+    });
+  }
+
+  if (els.genreFilter) {
+    els.genreFilter.addEventListener("change", () => {
+      appState.filters.selectedGenre = els.genreFilter.value;
+      applyFiltersAndRender();
+    });
+  }
+
+  if (els.cycleFilter) {
+    els.cycleFilter.addEventListener("change", () => {
+      appState.filters.selectedCycle = els.cycleFilter.value;
+      applyFiltersAndRender();
+    });
+  }
+
+  els.personPills.forEach((button) => {
+    button.addEventListener("click", () => {
+      const person = button.dataset.person || button.textContent?.trim() || ALL_PERSONS;
+      appState.filters.selectedPerson = person;
+      els.personPills.forEach((pill) => {
+        pill.classList.toggle("is-active", pill === button);
+      });
+      applyFiltersAndRender();
+    });
+  });
+}
+
+function populateFilterOptions(model) {
+  const genres = [...new Set(model.bookRows.map((row) => row.genre).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "de-DE"));
+
+  const cycles = [...new Set(model.bookRows.map((row) => row.cycle).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "de-DE"));
+
+  if (els.genreFilter) {
+    els.genreFilter.innerHTML = [
+      `<option value="${ALL_GENRES_VALUE}">Alle Genres</option>`,
+      ...genres.map((genre) => `<option value="${escapeHtml(genre)}">${escapeHtml(genre)}</option>`),
+    ].join("");
+    els.genreFilter.value = appState.filters.selectedGenre;
+  }
+
+  if (els.cycleFilter) {
+    els.cycleFilter.innerHTML = [
+      `<option value="${ALL_CYCLES_VALUE}">Alle Durchgaenge</option>`,
+      ...cycles.map((cycle) => `<option value="${escapeHtml(cycle)}">${escapeHtml(cycle)}</option>`),
+    ].join("");
+    els.cycleFilter.value = appState.filters.selectedCycle;
+  }
+}
+
+function applyFiltersAndRender() {
+  if (!appState.model) {
+    return;
+  }
+
+  const filtered = appState.model.bookRows.filter((row) => {
+    const matchesGenre =
+      appState.filters.selectedGenre === ALL_GENRES_VALUE || row.genre === appState.filters.selectedGenre;
+    const matchesCycle =
+      appState.filters.selectedCycle === ALL_CYCLES_VALUE || row.cycle === appState.filters.selectedCycle;
+    return matchesGenre && matchesCycle;
+  });
+
+  const sorted = [...filtered].sort(compareBooksByActiveFilters);
+  renderTable(sorted);
+  updateSelectedPersonColumnHighlight();
+  setStatus(buildFilterStatusText(sorted.length, appState.model.bookRows.length));
+}
+
+function updateSelectedPersonColumnHighlight() {
+  if (!els.bookTable) {
+    return;
+  }
+
+  const cells = els.bookTable.querySelectorAll("th, td");
+  cells.forEach((cell) => cell.classList.remove("is-highlighted-column"));
+
+  const selectedPerson = appState.filters.selectedPerson;
+  if (selectedPerson === ALL_PERSONS) {
+    return;
+  }
+
+  const memberIndex = KNOWN_MEMBERS.indexOf(selectedPerson);
+  if (memberIndex === -1) {
+    return;
+  }
+
+  const tableColumnIndex = memberIndex + 3;
+  const highlighted = els.bookTable.querySelectorAll(
+    `thead th:nth-child(${tableColumnIndex}), tbody td:nth-child(${tableColumnIndex})`
+  );
+
+  highlighted.forEach((cell) => cell.classList.add("is-highlighted-column"));
+}
+
+function compareBooksByActiveFilters(a, b) {
+  const personCompare = compareBySelectedPerson(a, b);
+  if (personCompare !== 0) {
+    return personCompare;
+  }
+
+  const sortCompare = compareBySelectedSort(a, b, appState.filters.selectedSort);
+  if (sortCompare !== 0) {
+    return sortCompare;
+  }
+
+  return (a.title || "").localeCompare(b.title || "", "de-DE");
+}
+
+function compareBySelectedPerson(a, b) {
+  const selectedPerson = appState.filters.selectedPerson;
+  if (selectedPerson === ALL_PERSONS) {
+    return 0;
+  }
+
+  const aRating = toSortableMemberRating(a.memberRatings.get(selectedPerson));
+  const bRating = toSortableMemberRating(b.memberRatings.get(selectedPerson));
+  return bRating - aRating;
+}
+
+function compareBySelectedSort(a, b, sortKey) {
+  switch (sortKey) {
+    case SORT_OPTIONS.AVG_ASC:
+      return toSortableAverage(a.avg, true) - toSortableAverage(b.avg, true);
+    case SORT_OPTIONS.DATE_ASC:
+      return toSortableDate(a, true) - toSortableDate(b, true);
+    case SORT_OPTIONS.DATE_DESC:
+      return toSortableDate(b, false) - toSortableDate(a, false);
+    case SORT_OPTIONS.AVG_DESC:
+    default:
+      return toSortableAverage(b.avg, false) - toSortableAverage(a.avg, false);
+  }
+}
+
+function toSortableMemberRating(value) {
+  return Number.isFinite(value) ? value : -1;
+}
+
+function toSortableAverage(value, ascending) {
+  if (Number.isFinite(value)) {
+    return value;
+  }
+
+  return ascending ? Number.POSITIVE_INFINITY : -1;
+}
+
+function toSortableDate(row, ascending) {
+  const date = parseDateToTimestamp(row.start_date || row.end_date);
+  if (date !== null) {
+    return date;
+  }
+
+  return ascending ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+}
+
+function parseDateToTimestamp(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.getTime();
+}
+
+function buildFilterStatusText(visibleCount, totalCount) {
+  const parts = [];
+
+  if (appState.filters.selectedPerson !== ALL_PERSONS) {
+    parts.push(`Person-Sortierung: ${appState.filters.selectedPerson}`);
+  }
+
+  if (appState.filters.selectedGenre !== ALL_GENRES_VALUE) {
+    parts.push(`Genre: ${appState.filters.selectedGenre}`);
+  }
+
+  if (appState.filters.selectedCycle !== ALL_CYCLES_VALUE) {
+    parts.push(`Durchgang: ${appState.filters.selectedCycle}`);
+  }
+
+  const sortLabels = {
+    [SORT_OPTIONS.AVG_DESC]: "Durchschnitt absteigend",
+    [SORT_OPTIONS.AVG_ASC]: "Durchschnitt aufsteigend",
+    [SORT_OPTIONS.DATE_ASC]: "Lesedatum aufsteigend",
+    [SORT_OPTIONS.DATE_DESC]: "Lesedatum absteigend",
+  };
+  parts.push(`Sortierung: ${sortLabels[appState.filters.selectedSort] || sortLabels[SORT_OPTIONS.AVG_DESC]}`);
+
+  const contextText = parts.length ? ` (${parts.join(" | ")})` : "";
+  return `Anzeige: ${visibleCount} von ${totalCount} Buechern${contextText}.`;
 }
 
 function normalizeBookRow(row) {
@@ -267,8 +489,8 @@ function populateBookDetail(book) {
     `Kauf-Link fuer ${book.title || "dieses Buch"} in neuem Tab oeffnen`
   );
 
-  els.modalGoodreadsRating.textContent = formatScaleValue(book.goodreads_rating, 5, "Noch nicht hinterlegt");
-  els.modalVskrRating.textContent = formatScaleValue(book.avg, 10, "Noch keine VSKR-Wertung");
+  renderScaleValueWithStars(els.modalGoodreadsRating, book.goodreads_rating, 5, "Noch nicht hinterlegt");
+  renderScaleValueWithStars(els.modalVskrRating, book.avg, 10, "Noch keine VSKR-Wertung");
   renderModalMemberRatings(book);
   els.modalProposer.textContent = formatMetaValue(book.proposed_by);
   els.modalCycle.textContent = formatMetaValue(book.cycle);
@@ -282,25 +504,29 @@ function populateBookDetail(book) {
 function renderBookCover(book) {
   const hasCover = Boolean(book.cover_image);
 
-  els.modalCoverFallbackTitle.textContent = book.title || "VSKR";
-
   if (!hasCover) {
+    if (els.modalMedia) {
+      els.modalMedia.hidden = true;
+    }
     els.modalCoverImage.hidden = true;
     els.modalCoverImage.removeAttribute("src");
     els.modalCoverImage.alt = "";
-    els.modalCoverFallback.hidden = false;
     return;
   }
 
+  if (els.modalMedia) {
+    els.modalMedia.hidden = false;
+  }
   els.modalCoverImage.src = book.cover_image;
   els.modalCoverImage.alt = `Cover von ${book.title || "dem Buch"}`;
   els.modalCoverImage.hidden = false;
-  els.modalCoverFallback.hidden = true;
 
   els.modalCoverImage.onerror = () => {
+    if (els.modalMedia) {
+      els.modalMedia.hidden = true;
+    }
     els.modalCoverImage.hidden = true;
     els.modalCoverImage.removeAttribute("src");
-    els.modalCoverFallback.hidden = false;
   };
 }
 
@@ -519,12 +745,30 @@ function formatDate(dateText) {
   }).format(date);
 }
 
-function formatScaleValue(value, scale, fallback) {
-  if (!Number.isFinite(value)) {
-    return fallback;
+function renderScaleValueWithStars(target, value, scale, fallback) {
+  if (!target) {
+    return;
   }
 
-  return `${value.toFixed(2)} / ${scale}`;
+  if (!Number.isFinite(value)) {
+    target.textContent = fallback;
+    return;
+  }
+
+  const rounded = Math.round(value * 10) / 10;
+  const clamped = clamp(rounded, 0, scale);
+  const starsOutOfFive = (clamped / scale) * 5;
+  const fillPercent = (starsOutOfFive / 5) * 100;
+  const numericValue = clamped.toFixed(1);
+  const starLabel = `${numericValue.replace(".", ",")} von ${scale} Sternen`;
+
+  target.innerHTML = `
+    <span class="modal-rating-number">${numericValue} / ${scale}</span>
+    <span class="star-rating" role="img" aria-label="${starLabel}">
+      <span class="star-rating-base">★★★★★</span>
+      <span class="star-rating-fill" style="width:${fillPercent.toFixed(1)}%">★★★★★</span>
+    </span>
+  `;
 }
 
 function formatMetaValue(value) {

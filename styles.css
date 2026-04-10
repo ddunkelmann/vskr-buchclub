@@ -299,6 +299,11 @@ td {
   text-align: left;
 }
 
+th.is-highlighted-column,
+td.is-highlighted-column {
+  background: rgba(111, 167, 255, 0.2);
+}
+
 th:nth-child(1),
 td:nth-child(1) {
   width: 30%;
@@ -416,6 +421,11 @@ tbody tr:hover {
   align-items: start;
 }
 
+.modal-header {
+  margin: 0 0 1rem;
+  padding-right: 3.2rem;
+}
+
 .modal-media,
 .modal-content {
   border: 1px solid #27406b;
@@ -427,8 +437,7 @@ tbody tr:hover {
   padding: 0.9rem;
 }
 
-.modal-cover-image,
-.modal-cover-fallback {
+.modal-cover-image {
   width: 100%;
   aspect-ratio: 2 / 3;
   border-radius: 14px;
@@ -439,31 +448,6 @@ tbody tr:hover {
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: #09111f;
-}
-
-.modal-cover-fallback {
-  display: grid;
-  align-items: end;
-  padding: 1rem;
-  background:
-    linear-gradient(180deg, rgba(94, 150, 247, 0.26), rgba(7, 14, 28, 0.1)),
-    linear-gradient(145deg, #19335f 0%, #0c1830 100%);
-  box-shadow: inset 0 0 0 1px rgba(145, 178, 233, 0.14);
-}
-
-.modal-cover-fallback span {
-  display: inline-block;
-  width: fit-content;
-  max-width: 100%;
-  border-radius: 12px;
-  padding: 0.35rem 0.6rem;
-  font-family: "Archivo Black", sans-serif;
-  font-size: clamp(1.35rem, 4vw, 2rem);
-  line-height: 1.05;
-  color: #f1f6ff;
-  background: rgba(9, 20, 38, 0.74);
-  border: 1px solid rgba(131, 170, 234, 0.38);
-  text-wrap: balance;
 }
 
 .modal-content {
@@ -479,7 +463,7 @@ tbody tr:hover {
   color: #89b4ff;
 }
 
-.modal-content h2 {
+.modal-header h2 {
   margin: 0.35rem 0 0;
   font-size: clamp(1.4rem, 2.4vw, 2.1rem);
   line-height: 1.1;
@@ -538,7 +522,33 @@ tbody tr:hover {
   margin-top: 0.35rem;
   font-family: "Archivo Black", sans-serif;
   font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1.1;
   color: #f5f8ff;
+}
+
+.modal-rating-number {
+  display: block;
+}
+
+.star-rating {
+  position: relative;
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.star-rating-base {
+  color: #4b648f;
+}
+
+.star-rating-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #ffd268;
 }
 
 .modal-member-scores {
