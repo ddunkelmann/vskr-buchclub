@@ -36,15 +36,8 @@
           </p>
         </div>
 
-        <aside class="logo-slot" aria-label="Logo Bereich">
-          <p class="logo-label">Club-Logo (PNG)</p>
-          <div class="logo-frame">
-            <span>Logo-Platzhalter</span>
-          </div>
-          <label class="logo-upload" for="club-logo">
-            PNG hochladen (UI)
-            <input id="club-logo" type="file" accept="image/png" />
-          </label>
+        <aside class="logo-slot" aria-label="VSKR Logo">
+          <img src="VSKR_LOGO.png" alt="VSKR – Vereinigung Sächsischer Kunst- und Kulturschaffender" class="club-logo" />
         </aside>
       </div>
     </header>
@@ -53,7 +46,7 @@
       <section class="card filters" aria-labelledby="filter-heading">
         <div class="filters-head">
           <h2 id="filter-heading">Filter und Fokus</h2>
-          <p>Reine UI-Vorbereitung fuer persoenliche Highlights und Drilldown.</p>
+          <p>Filtere nach Person, Genre und Durchgang.</p>
         </div>
 
         <div class="filter-row">
@@ -80,7 +73,7 @@
           <label class="field field-compact">
             <span>Durchgang</span>
             <select id="cycle-filter">
-              <option>Alle Durchgaenge</option>
+              <option>Alle Durchgänge</option>
             </select>
           </label>
           <label class="field field-compact">
@@ -123,44 +116,161 @@
       </section>
 
       <section class="card stats-secondary" aria-labelledby="stats-heading">
-        <h2 id="stats-heading">Statistiken</h2>
-        <p class="muted">
-          Zweite Ebene: Auswertung nach Top/Flop, Personen, Genres und Streuung.
-        </p>
+        <div class="section-headline section-headline-analytics">
+          <div>
+            <p class="section-kicker">Analyse</p>
+            <h2 id="stats-heading">Erweiterte Analysen</h2>
+            <p class="muted analytics-intro">Kennzahlen und Vergleiche auf einen Blick.</p>
+          </div>
+          <span class="focus-chip secondary">Analyse</span>
+        </div>
 
-        <div class="stats-grid">
-          <article>
-            <h3>Top 3</h3>
-            <ol id="top3"></ol>
+        <div class="analytics-summary" aria-label="Analyseüberblick">
+          <article class="analytics-stat-tile">
+            <span class="analytics-stat-label">Bücher gesamt</span>
+            <strong id="summary-total-books" class="analytics-stat-value">-</strong>
+            <p class="analytics-stat-detail">Historie seit Februar 2024</p>
           </article>
-          <article>
-            <h3>Flop 3</h3>
-            <ol id="flop3"></ol>
+          <article class="analytics-stat-tile analytics-stat-tile-accent">
+            <span class="analytics-stat-label">Club-Schnitt</span>
+            <strong id="summary-club-average" class="analytics-stat-value">-</strong>
+            <p class="analytics-stat-detail">Durchschnitt über alle bewerteten Bücher</p>
           </article>
-          <article>
-            <h3>Durchschnitt nach Genre</h3>
-            <ul id="genre-avg"></ul>
+          <article class="analytics-stat-tile analytics-stat-tile-wide">
+            <span class="analytics-stat-label">Meiste Debatte</span>
+            <strong id="summary-polarizing-book" class="analytics-stat-value analytics-stat-value-title">-</strong>
+            <p id="summary-polarizing-detail" class="analytics-stat-detail">Noch keine Streuung verfügbar</p>
           </article>
-          <article>
-            <h3>Durchschnitt nach Vorschlag</h3>
-            <ul id="proposer-avg"></ul>
+          <article class="analytics-stat-tile analytics-stat-tile-positive">
+            <span class="analytics-stat-label">Wertungen über 7</span>
+            <strong id="summary-high-ratings-pct" class="analytics-stat-value">-</strong>
+            <p class="analytics-stat-detail">Anteil aller Einzelwertungen über 7 Punkte</p>
           </article>
-          <article>
-            <h3>Personen-Ranking</h3>
-            <ol id="person-ranking"></ol>
-          </article>
-          <article>
-            <h3>Durchschnitt pro Durchgang</h3>
-            <ul id="cycle-avg"></ul>
-          </article>
-          <article>
-            <h3>Groesste Differenz</h3>
-            <ul id="largest-spread"></ul>
-          </article>
-          <article>
-            <h3>Groesste Einigkeit</h3>
-            <ul id="smallest-spread"></ul>
-          </article>
+        </div>
+
+        <div class="analytics-magazine">
+          <div class="analytics-featured-grid">
+            <article class="analytics-panel analytics-panel-spotlight">
+              <div class="analytics-panel-head">
+                <p class="analytics-panel-kicker">Topliste</p>
+                <h3>Top 3</h3>
+              </div>
+              <ol id="top3" class="analytics-list analytics-list-ranked"></ol>
+            </article>
+
+            <article class="analytics-panel analytics-panel-spotlight analytics-panel-warm">
+              <div class="analytics-panel-head">
+                <p class="analytics-panel-kicker">Vergleich</p>
+                <h3>Flop 3</h3>
+              </div>
+              <ol id="flop3" class="analytics-list analytics-list-ranked"></ol>
+            </article>
+
+            <article class="analytics-panel analytics-panel-story">
+              <div class="analytics-panel-head">
+                <p class="analytics-panel-kicker">Streuung</p>
+                <h3>Streuung im Blick</h3>
+              </div>
+
+              <div class="analytics-split-lists">
+                <section class="analytics-subpanel">
+                  <div class="analytics-subpanel-head">
+                    <h4>Größte Differenz</h4>
+                    <span class="analytics-subpanel-tag">Delta</span>
+                  </div>
+                  <ul id="largest-spread" class="analytics-list"></ul>
+                </section>
+
+                <section class="analytics-subpanel">
+                  <div class="analytics-subpanel-head">
+                    <h4>Größte Einigkeit</h4>
+                    <span class="analytics-subpanel-tag">Konsens</span>
+                  </div>
+                  <ul id="smallest-spread" class="analytics-list"></ul>
+                </section>
+              </div>
+            </article>
+          </div>
+
+          <div class="analytics-compare-grid">
+            <article class="analytics-panel">
+              <div class="analytics-panel-head">
+                <p class="analytics-panel-kicker">Vergleich</p>
+                <h3>Durchschnitt nach Genre</h3>
+              </div>
+              <ul id="genre-avg" class="analytics-list"></ul>
+            </article>
+
+            <article class="analytics-panel">
+              <div class="analytics-panel-head">
+                <p class="analytics-panel-kicker">Vergleich</p>
+                <h3>Durchschnitt nach Vorschlag</h3>
+              </div>
+              <ul id="proposer-avg" class="analytics-list"></ul>
+            </article>
+
+            <article class="analytics-panel">
+              <div class="analytics-panel-head">
+                <p class="analytics-panel-kicker">Personen</p>
+                <h3>Personen-Ranking</h3>
+              </div>
+              <ol id="person-ranking" class="analytics-list analytics-list-ranked"></ol>
+            </article>
+
+            <article class="analytics-panel analytics-panel-deepdive">
+              <div class="analytics-panel-head">
+                <p class="analytics-panel-kicker">Durchgänge</p>
+                <h3>Durchschnitt pro Durchgang</h3>
+              </div>
+              <ul id="cycle-avg" class="analytics-list"></ul>
+            </article>
+
+            <article class="analytics-panel analytics-panel-full">
+              <div class="analytics-panel-head">
+                <p class="analytics-panel-kicker">Trend</p>
+                <h3>Mit dem Trend / Gegen den Trend</h3>
+              </div>
+              <div class="analytics-split-lists analytics-split-lists-wide">
+                <section class="analytics-subpanel">
+                  <div class="analytics-subpanel-head">
+                    <h4>Mit dem Trend</h4>
+                    <span class="analytics-subpanel-tag">Niedrigste Abweichung</span>
+                  </div>
+                  <ul id="trend-with-flow" class="analytics-list"></ul>
+                </section>
+                <section class="analytics-subpanel">
+                  <div class="analytics-subpanel-head">
+                    <h4>Gegen den Trend</h4>
+                    <span class="analytics-subpanel-tag">Höchste Abweichung</span>
+                  </div>
+                  <ul id="trend-against-flow" class="analytics-list"></ul>
+                </section>
+              </div>
+            </article>
+
+            <article class="analytics-panel analytics-panel-full">
+              <div class="analytics-panel-head">
+                <p class="analytics-panel-kicker">Geschmack</p>
+                <h3>Geschmacks-Kompatibilität</h3>
+              </div>
+              <div class="analytics-split-lists analytics-split-lists-wide">
+                <section class="analytics-subpanel">
+                  <div class="analytics-subpanel-head">
+                    <h4>Gleicher Geschmack</h4>
+                    <span class="analytics-subpanel-tag">Höchste Korrelation</span>
+                  </div>
+                  <ul id="taste-similar" class="analytics-list"></ul>
+                </section>
+                <section class="analytics-subpanel">
+                  <div class="analytics-subpanel-head">
+                    <h4>Unterschiedlicher Geschmack</h4>
+                    <span class="analytics-subpanel-tag">Niedrigste Korrelation</span>
+                  </div>
+                  <ul id="taste-different" class="analytics-list"></ul>
+                </section>
+              </div>
+            </article>
+          </div>
         </div>
       </section>
     </main>
@@ -182,7 +292,7 @@
           type="button"
           class="modal-close"
           id="modal-close"
-          aria-label="Popup schliessen"
+          aria-label="Popup schließen"
         >
           ×
         </button>
@@ -233,7 +343,7 @@
                 <dd id="modal-proposer"></dd>
               </div>
               <div>
-                <dt>Cycle</dt>
+                <dt>Durchgang</dt>
                 <dd id="modal-cycle"></dd>
               </div>
               <div>

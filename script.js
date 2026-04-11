@@ -35,6 +35,15 @@ const els = {
   cycleAvg: document.getElementById("cycle-avg"),
   largestSpread: document.getElementById("largest-spread"),
   smallestSpread: document.getElementById("smallest-spread"),
+  summaryTotalBooks: document.getElementById("summary-total-books"),
+  summaryClubAverage: document.getElementById("summary-club-average"),
+  summaryPolarizingBook: document.getElementById("summary-polarizing-book"),
+  summaryPolarizingDetail: document.getElementById("summary-polarizing-detail"),
+  summaryHighRatingsPct: document.getElementById("summary-high-ratings-pct"),
+  tasteSimilar: document.getElementById("taste-similar"),
+  tasteDifferent: document.getElementById("taste-different"),
+  trendWithFlow: document.getElementById("trend-with-flow"),
+  trendAgainstFlow: document.getElementById("trend-against-flow"),
   modal: document.getElementById("book-detail-modal"),
   modalClose: document.getElementById("modal-close"),
   modalMedia: document.getElementById("modal-media"),
@@ -90,7 +99,7 @@ function processData(booksCsv, ratingsCsv) {
     .filter((row) => Number.isFinite(row.rating) && row.rating >= 1 && row.rating <= 10);
 
   if (!books.length) {
-    setStatus("Buecher CSV ist leer oder ungueltig.");
+    setStatus("Bücher-CSV ist leer oder ungültig.");
     return;
   }
 
@@ -153,7 +162,7 @@ function populateFilterOptions(model) {
 
   if (els.cycleFilter) {
     els.cycleFilter.innerHTML = [
-      `<option value="${ALL_CYCLES_VALUE}">Alle Durchgaenge</option>`,
+      `<option value="${ALL_CYCLES_VALUE}">Alle Durchgänge</option>`,
       ...cycles.map((cycle) => `<option value="${escapeHtml(cycle)}">${escapeHtml(cycle)}</option>`),
     ].join("");
     els.cycleFilter.value = appState.filters.selectedCycle;
@@ -298,7 +307,7 @@ function buildFilterStatusText(visibleCount, totalCount) {
   parts.push(`Sortierung: ${sortLabels[appState.filters.selectedSort] || sortLabels[SORT_OPTIONS.AVG_DESC]}`);
 
   const contextText = parts.length ? ` (${parts.join(" | ")})` : "";
-  return `Anzeige: ${visibleCount} von ${totalCount} Buechern${contextText}.`;
+  return `Anzeige: ${visibleCount} von ${totalCount} Büchern${contextText}.`;
 }
 
 function normalizeBookRow(row) {
@@ -350,7 +359,7 @@ function buildModel(books, ratings) {
   const top3 = [...ratedBooks].sort((a, b) => b.avg - a.avg).slice(0, 3);
   const flop3 = [...ratedBooks].sort((a, b) => a.avg - b.avg).slice(0, 3);
 
-  const genreAvg = groupedAverage(bookRows, (book) => book.genre, (book) => book.values);
+  const genreAvg = groupedAverageWithRows(bookRows, (book) => book.genre, (book) => book.values);
   const proposerAvg = groupedAverage(
     bookRows,
     (book) => book.proposed_by,
@@ -370,6 +379,57 @@ function buildModel(books, ratings) {
   const withSpread = ratedBooks.filter((book) => book.spread !== null);
   const largestSpread = [...withSpread].sort((a, b) => b.spread - a.spread).slice(0, 3);
   const smallestSpread = [...withSpread].sort((a, b) => a.spread - b.spread).slice(0, 3);
+  const clubAverage = ratedBooks.length ? average(ratedBooks.map((book) => book.avg)) : null;
+
+  const allRatingsCount = ratings.length;
+  const highRatingsCount = ratings.filter((r) => r.rating > 7).length;
+  const highRatingsPct = allRatingsCount > 0 ? (highRatingsCount / allRatingsCount) * 100 : null;
+
+  const ratingsByPerson = new Map();
+  ratings.forEach((r) => {
+    if (!ratingsByPerson.has(r.person)) ratingsByPerson.set(r.person, new Map());
+    ratingsByPerson.get(r.person).set(r.book_id, r.rating);
+  });
+
+  const tasteCorrelations = [];
+  for (let i = 0; i < KNOWN_MEMBERS.length; i++) {
+    for (let j = i + 1; j < KNOWN_MEMBERS.length; j++) {
+      const personA = KNOWN_MEMBERS[i];
+      const personB = KNOWN_MEMBERS[j];
+      const ratingsA = ratingsByPerson.get(personA) || new Map();
+      const ratingsB = ratingsByPerson.get(personB) || new Map();
+      const sharedBookIds = [...ratingsA.keys()].filter((id) => ratingsB.has(id));
+      if (sharedBookIds.length < 3) continue;
+      const xs = sharedBookIds.map((id) => ratingsA.get(id));
+      const ys = sharedBookIds.map((id) => ratingsB.get(id));
+      const r = pearsonCorrelation(xs, ys);
+      if (r !== null) {
+        tasteCorrelations.push({ personA, personB, r, sharedCount: sharedBookIds.length });
+      }
+    }
+  }
+
+  const tasteSimilar = [...tasteCorrelations].sort((a, b) => b.r - a.r).slice(0, 3);
+  const tasteDifferent = [...tasteCorrelations].sort((a, b) => a.r - b.r).slice(0, 3);
+
+  const bookAvgById = new Map(bookRows.map((b) => [b.book_id, b.avg]));
+
+  const personTrendStats = KNOWN_MEMBERS.map((member) => {
+    const memberRatingsMap = ratingsByPerson.get(member) || new Map();
+    const deviations = [...memberRatingsMap.entries()]
+      .map(([bookId, rating]) => {
+        const bookAvg = bookAvgById.get(bookId);
+        return bookAvg !== null && bookAvg !== undefined ? Math.abs(rating - bookAvg) : null;
+      })
+      .filter((d) => d !== null);
+    if (!deviations.length) return null;
+    const avgDeviation = average(deviations);
+    const closePct = (deviations.filter((d) => d <= 1).length / deviations.length) * 100;
+    return { label: member, avgDeviation, closePct, count: deviations.length };
+  }).filter(Boolean);
+
+  const trendWithFlow = [...personTrendStats].sort((a, b) => a.avgDeviation - b.avgDeviation).slice(0, 3);
+  const trendAgainstFlow = [...personTrendStats].sort((a, b) => b.avgDeviation - a.avgDeviation).slice(0, 3);
 
   return {
     bookRows,
@@ -381,6 +441,16 @@ function buildModel(books, ratings) {
     cycleAvg,
     largestSpread,
     smallestSpread,
+    tasteSimilar,
+    tasteDifferent,
+    trendWithFlow,
+    trendAgainstFlow,
+    summary: {
+      totalBooks: bookRows.length,
+      clubAverage,
+      highRatingsPct,
+      polarizingBook: largestSpread[0] || null,
+    },
   };
 }
 
@@ -399,7 +469,7 @@ function renderTable(rows) {
             type="button"
             class="book-link"
             data-book-id="${escapeHtml(row.book_id)}"
-            aria-label="Details fuer ${escapeHtml(row.title || "Buch")} anzeigen"
+            aria-label="Details für ${escapeHtml(row.title || "Buch")} anzeigen"
           >
             ${escapeHtml(row.title || "-")}
           </button>
@@ -486,7 +556,7 @@ function populateBookDetail(book) {
   els.modalBuyLink.href = buyLink;
   els.modalBuyLink.setAttribute(
     "aria-label",
-    `Kauf-Link fuer ${book.title || "dieses Buch"} in neuem Tab oeffnen`
+    `Kauf-Link für ${book.title || "dieses Buch"} in neuem Tab öffnen`
   );
 
   renderScaleValueWithStars(els.modalGoodreadsRating, book.goodreads_rating, 5, "Noch nicht hinterlegt");
@@ -607,56 +677,233 @@ function getReadableTextColor(rgb) {
 }
 
 function renderStats(model) {
-  renderList(
-    els.top3,
-    model.top3.map((book) => `${book.title} (${book.avg.toFixed(2)})`),
-    true
-  );
-  renderList(
-    els.flop3,
-    model.flop3.map((book) => `${book.title} (${book.avg.toFixed(2)})`),
-    true
-  );
-  renderList(
-    els.genreAvg,
-    model.genreAvg.map((item) => `${item.label}: ${item.value.toFixed(2)}`)
-  );
-  renderList(
-    els.proposerAvg,
-    model.proposerAvg.map((item) => `${item.label}: ${item.value.toFixed(2)}`)
-  );
-  renderList(
-    els.personRanking,
-    model.personScores.map((item) =>
-      item.value === null ? `${item.label}: keine Bewertung` : `${item.label}: ${item.value.toFixed(2)}`
-    ),
-    true
-  );
-  renderList(
-    els.cycleAvg,
-    model.cycleAvg.map((item) => `${item.label}: ${item.value.toFixed(2)}`)
-  );
-  renderList(
-    els.largestSpread,
-    model.largestSpread.map((book) => `${book.title}: ${book.spread.toFixed(2)}`)
-  );
-  renderList(
-    els.smallestSpread,
-    model.smallestSpread.map((book) => `${book.title}: ${book.spread.toFixed(2)}`)
-  );
+  renderAnalyticsSummary(model.summary);
+
+  const modules = [
+    {
+      target: els.top3,
+      ordered: true,
+      items: model.top3.map((book) => ({
+        title: book.title,
+        value: formatDecimal(book.avg),
+        meta: buildBookMeta(book),
+        imageUrl: book.cover_image,
+      })),
+    },
+    {
+      target: els.flop3,
+      ordered: true,
+      items: model.flop3.map((book) => ({
+        title: book.title,
+        value: formatDecimal(book.avg),
+        meta: buildBookMeta(book),
+        imageUrl: book.cover_image,
+      })),
+    },
+    {
+      target: els.genreAvg,
+      items: model.genreAvg.slice(0, 5).map((item) => ({
+        title: item.label,
+        value: formatDecimal(item.value),
+        meta: buildGenreBookList(item.rows),
+        barValue: item.value,
+        barMax: 10,
+      })),
+    },
+    {
+      target: els.proposerAvg,
+      items: model.proposerAvg.map((item) => ({
+        title: item.label,
+        value: formatDecimal(item.value),
+        meta: "Vorschlags-Schnitt",
+        barValue: item.value,
+        barMax: 10,
+      })),
+    },
+    {
+      target: els.personRanking,
+      ordered: true,
+      items: model.personScores.map((item) => ({
+        title: item.label,
+        value: item.value === null ? "-" : formatDecimal(item.value),
+        meta: item.value === null ? "Keine Bewertung" : "Durchschnitt vergebener Punkte",
+        mutedValue: item.value === null,
+        barValue: item.value,
+        barMax: 10,
+      })),
+    },
+    {
+      target: els.cycleAvg,
+      items: model.cycleAvg.map((item) => ({
+        title: item.label,
+        value: formatDecimal(item.value),
+        meta: "Halbjahres-Schnitt",
+        barValue: item.value,
+        barMax: 10,
+      })),
+    },
+    {
+      target: els.largestSpread,
+      items: model.largestSpread.map((book) => ({
+        title: book.title,
+        value: `Δ ${formatDecimal(book.spread)}`,
+        meta: buildBookMeta(book),
+        imageUrl: book.cover_image,
+      })),
+    },
+    {
+      target: els.smallestSpread,
+      items: model.smallestSpread.map((book) => ({
+        title: book.title,
+        value: `Δ ${formatDecimal(book.spread)}`,
+        meta: buildBookMeta(book),
+        imageUrl: book.cover_image,
+      })),
+    },
+    {
+      target: els.tasteSimilar,
+      items: model.tasteSimilar.map((item) => ({
+        title: `${item.personA} & ${item.personB}`,
+        value: `r = ${item.r.toFixed(2)}`,
+        meta: `${item.sharedCount} gemeinsame Wertungen`,
+        barValue: item.r,
+        barMax: 1,
+      })),
+    },
+    {
+      target: els.tasteDifferent,
+      items: model.tasteDifferent.map((item) => ({
+        title: `${item.personA} & ${item.personB}`,
+        value: `r = ${item.r.toFixed(2)}`,
+        meta: `${item.sharedCount} gemeinsame Wertungen`,
+        barValue: item.r,
+        barMax: 1,
+      })),
+    },
+    {
+      target: els.trendWithFlow,
+      items: model.trendWithFlow.map((item) => ({
+        title: item.label,
+        value: `Ø ±${item.avgDeviation.toFixed(2)}`,
+        meta: `${item.closePct.toFixed(0)} % innerhalb ±1 Punkt | ${item.count} Wertungen`,
+        barValue: item.avgDeviation,
+        barMax: 1,
+      })),
+    },
+    {
+      target: els.trendAgainstFlow,
+      items: model.trendAgainstFlow.map((item) => ({
+        title: item.label,
+        value: `Ø ±${item.avgDeviation.toFixed(2)}`,
+        meta: `${item.closePct.toFixed(0)} % innerhalb ±1 Punkt | ${item.count} Wertungen`,
+        barValue: item.avgDeviation,
+        barMax: 1,
+      })),
+    },
+  ];
+
+  modules.forEach((module) => {
+    renderAnalyticsList(module.target, module.items, module.ordered);
+  });
 }
 
-function renderList(target, items, ordered = false) {
-  if (!items.length) {
-    target.innerHTML = `<li>Keine Daten</li>`;
+function renderAnalyticsSummary(summary) {
+  if (els.summaryTotalBooks) {
+    els.summaryTotalBooks.textContent = String(summary.totalBooks ?? "-");
+  }
+
+  if (els.summaryClubAverage) {
+    els.summaryClubAverage.textContent = summary.clubAverage === null
+      ? "-"
+      : formatDecimal(summary.clubAverage);
+  }
+
+  if (els.summaryPolarizingBook) {
+    els.summaryPolarizingBook.textContent = summary.polarizingBook?.title || "Noch offen";
+  }
+
+  if (els.summaryPolarizingDetail) {
+    els.summaryPolarizingDetail.textContent = summary.polarizingBook
+      ? `Delta ${formatDecimal(summary.polarizingBook.spread)} | ${buildBookMeta(summary.polarizingBook)}`
+      : "Noch keine Streuung verfügbar";
+  }
+
+  if (els.summaryHighRatingsPct) {
+    els.summaryHighRatingsPct.textContent = summary.highRatingsPct === null
+      ? "-"
+      : `${summary.highRatingsPct.toFixed(1)} %`;
+  }
+}
+
+function renderAnalyticsList(target, items, ordered = false) {
+  if (!target) {
     return;
   }
 
-  target.innerHTML = items.map((text) => `<li>${escapeHtml(text)}</li>`).join("");
+  target.classList.toggle("analytics-list-ranked", ordered);
 
-  if (ordered) {
-    target.setAttribute("start", "1");
+  if (!items.length) {
+    target.innerHTML = `
+      <li class="analytics-list-item analytics-list-item-empty">
+        <span class="analytics-list-title">Keine Daten</span>
+      </li>
+    `;
+    return;
   }
+
+  target.innerHTML = items.map((item) => buildAnalyticsListItem(item)).join("");
+}
+
+function buildAnalyticsListItem(item) {
+  const title = escapeHtml(item.title || "-");
+  const meta = item.meta ? `<span class="analytics-list-meta">${escapeHtml(item.meta)}</span>` : "";
+  const valueClass = item.mutedValue
+    ? "analytics-list-value analytics-list-value-muted"
+    : "analytics-list-value";
+
+  const hasBar = !item.imageUrl && Number.isFinite(item.barValue) && item.barMax > 0;
+  const barFill = hasBar ? Math.max(0, Math.min(1, item.barValue / item.barMax)) : null;
+
+  const itemClass = item.imageUrl
+    ? `analytics-list-item analytics-list-item-with-cover${item.imageProminent ? " analytics-list-item-cover-prominent" : ""}`
+    : "analytics-list-item";
+  const styleAttr = item.imageUrl
+    ? ` style="--analytics-cover-image:url('${escapeHtml(item.imageUrl)}')"`
+    : barFill !== null
+      ? ` style="--bar-fill:${barFill.toFixed(4)}"`
+      : "";
+  const coverBg = item.imageUrl
+    ? `<span class="analytics-list-cover-bg" aria-hidden="true"></span>`
+    : barFill !== null
+      ? `<span class="analytics-list-bar-bg" aria-hidden="true"></span>`
+      : "";
+
+  return `
+    <li class="${itemClass}"${styleAttr}>
+      ${coverBg}
+      <div class="analytics-list-copy">
+        <span class="analytics-list-title">${title}</span>
+        ${meta}
+      </div>
+      <span class="${valueClass}">${escapeHtml(item.value || "-")}</span>
+    </li>
+  `;
+}
+
+function buildBookMeta(book) {
+  return [book.genre, book.cycle].filter(Boolean).join(" | ") || "Buchwertung";
+}
+
+function buildGenreBookList(rows) {
+  const titles = (rows || [])
+    .map((row) => row.title)
+    .filter(Boolean);
+
+  return titles.length ? titles.join(", ") : "Keine Titel vorhanden";
+}
+
+function formatDecimal(value) {
+  return Number.isFinite(value) ? value.toFixed(2) : "-";
 }
 
 function groupedAverage(rows, groupKeyFn, valuesFn) {
@@ -681,9 +928,37 @@ function groupedAverage(rows, groupKeyFn, valuesFn) {
     .sort((a, b) => b.value - a.value);
 }
 
+function groupedAverageWithRows(rows, groupKeyFn, valuesFn) {
+  const grouped = new Map();
+
+  rows.forEach((row) => {
+    const key = (groupKeyFn(row) || "Unbekannt").trim();
+    const values = valuesFn(row);
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        values: [],
+        rows: [],
+      });
+    }
+
+    const entry = grouped.get(key);
+    entry.values.push(...values);
+    entry.rows.push(row);
+  });
+
+  return [...grouped.entries()]
+    .map(([label, entry]) => ({
+      label,
+      value: entry.values.length ? average(entry.values) : 0,
+      rows: entry.rows,
+    }))
+    .sort((a, b) => b.value - a.value);
+}
+
 function parseCsv(text) {
   if (!window.Papa) {
-    throw new Error("PapaParse nicht verfuegbar");
+    throw new Error("PapaParse nicht verfügbar");
   }
 
   const result = window.Papa.parse(text, {
@@ -698,6 +973,20 @@ function parseCsv(text) {
 
 function average(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function pearsonCorrelation(xs, ys) {
+  const n = xs.length;
+  if (n < 2) return null;
+  const meanX = average(xs);
+  const meanY = average(ys);
+  const diffX = xs.map((x) => x - meanX);
+  const diffY = ys.map((y) => y - meanY);
+  const numerator = diffX.reduce((sum, dx, i) => sum + dx * diffY[i], 0);
+  const denX = Math.sqrt(diffX.reduce((sum, dx) => sum + dx * dx, 0));
+  const denY = Math.sqrt(diffY.reduce((sum, dy) => sum + dy * dy, 0));
+  const denominator = denX * denY;
+  return denominator === 0 ? null : numerator / denominator;
 }
 
 function groupBy(items, key) {
