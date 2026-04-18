@@ -246,6 +246,13 @@ button:hover {
   margin: 0;
 }
 
+.table-hint {
+  margin: 0 0 0.6rem;
+  color: #9ab3dc;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
 .focus-chip {
   font-size: 0.78rem;
   text-transform: uppercase;
@@ -974,6 +981,14 @@ tbody tr:hover {
   background: rgba(10, 19, 34, 0.52);
 }
 
+.analytics-list-item.is-clickable {
+  border-color: rgba(96, 139, 211, 0.55);
+}
+
+.analytics-list-item.is-clickable:hover {
+  background: rgba(14, 27, 47, 0.66);
+}
+
 .analytics-list-item-with-cover {
   background: rgba(10, 20, 36, 0.5);
 }
@@ -1053,6 +1068,30 @@ tbody tr:hover {
   font-weight: 800;
   color: #f0f5ff;
   text-shadow: 0 1px 2px rgba(5, 9, 16, 0.75);
+}
+
+.analytics-item-link {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 0;
+  color: #f0f5ff;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+  width: fit-content;
+  text-shadow: 0 1px 2px rgba(5, 9, 16, 0.75);
+}
+
+.analytics-item-link:hover,
+.analytics-item-link:focus-visible {
+  color: #9fc3ff;
+  outline: none;
 }
 
 .analytics-list-meta {

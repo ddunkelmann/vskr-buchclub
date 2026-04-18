@@ -688,6 +688,7 @@ function renderStats(model) {
         value: formatDecimal(book.avg),
         meta: buildBookMeta(book),
         imageUrl: book.cover_image,
+        bookId: book.book_id,
       })),
     },
     {
@@ -698,6 +699,7 @@ function renderStats(model) {
         value: formatDecimal(book.avg),
         meta: buildBookMeta(book),
         imageUrl: book.cover_image,
+        bookId: book.book_id,
       })),
     },
     {
@@ -708,6 +710,7 @@ function renderStats(model) {
         meta: buildGenreBookList(item.rows),
         barValue: item.value,
         barMax: 10,
+        bookId: item.rows?.length === 1 ? item.rows[0].book_id : null,
       })),
     },
     {
@@ -715,7 +718,6 @@ function renderStats(model) {
       items: model.proposerAvg.map((item) => ({
         title: item.label,
         value: formatDecimal(item.value),
-        meta: "Vorschlags-Schnitt",
         barValue: item.value,
         barMax: 10,
       })),
@@ -726,7 +728,6 @@ function renderStats(model) {
       items: model.personScores.map((item) => ({
         title: item.label,
         value: item.value === null ? "-" : formatDecimal(item.value),
-        meta: item.value === null ? "Keine Bewertung" : "Durchschnitt vergebener Punkte",
         mutedValue: item.value === null,
         barValue: item.value,
         barMax: 10,
@@ -737,7 +738,6 @@ function renderStats(model) {
       items: model.cycleAvg.map((item) => ({
         title: item.label,
         value: formatDecimal(item.value),
-        meta: "Halbjahres-Schnitt",
         barValue: item.value,
         barMax: 10,
       })),
@@ -749,6 +749,7 @@ function renderStats(model) {
         value: `Δ ${formatDecimal(book.spread)}`,
         meta: buildBookMeta(book),
         imageUrl: book.cover_image,
+        bookId: book.book_id,
       })),
     },
     {
@@ -758,6 +759,7 @@ function renderStats(model) {
         value: `Δ ${formatDecimal(book.spread)}`,
         meta: buildBookMeta(book),
         imageUrl: book.cover_image,
+        bookId: book.book_id,
       })),
     },
     {
@@ -852,10 +854,23 @@ function renderAnalyticsList(target, items, ordered = false) {
   }
 
   target.innerHTML = items.map((item) => buildAnalyticsListItem(item)).join("");
+
+  const detailButtons = target.querySelectorAll(".analytics-item-link[data-book-id]");
+  detailButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const bookId = button.dataset.bookId;
+      openBookDetail(bookId, button);
+    });
+  });
 }
 
 function buildAnalyticsListItem(item) {
   const title = escapeHtml(item.title || "-");
+  const hasBookLink = Boolean(item.bookId);
+  const bookId = hasBookLink ? escapeHtml(item.bookId) : "";
+  const titleMarkup = hasBookLink
+    ? `<button type="button" class="analytics-item-link" data-book-id="${bookId}" aria-label="Details für ${title} anzeigen">${title}</button>`
+    : `<span class="analytics-list-title">${title}</span>`;
   const meta = item.meta ? `<span class="analytics-list-meta">${escapeHtml(item.meta)}</span>` : "";
   const valueClass = item.mutedValue
     ? "analytics-list-value analytics-list-value-muted"
@@ -867,6 +882,7 @@ function buildAnalyticsListItem(item) {
   const itemClass = item.imageUrl
     ? `analytics-list-item analytics-list-item-with-cover${item.imageProminent ? " analytics-list-item-cover-prominent" : ""}`
     : "analytics-list-item";
+  const interactiveClass = hasBookLink ? " is-clickable" : "";
   const styleAttr = item.imageUrl
     ? ` style="--analytics-cover-image:url('${escapeHtml(item.imageUrl)}')"`
     : barFill !== null
@@ -879,10 +895,10 @@ function buildAnalyticsListItem(item) {
       : "";
 
   return `
-    <li class="${itemClass}"${styleAttr}>
+    <li class="${itemClass}${interactiveClass}"${styleAttr}>
       ${coverBg}
       <div class="analytics-list-copy">
-        <span class="analytics-list-title">${title}</span>
+        ${titleMarkup}
         ${meta}
       </div>
       <span class="${valueClass}">${escapeHtml(item.value || "-")}</span>
