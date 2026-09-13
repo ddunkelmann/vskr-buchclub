@@ -26,6 +26,7 @@ Alternativ koennen zwei eigene CSV-Dateien direkt ueber die Upload-Felder gelade
 Buecherdatei:
 - book_id,title,author,genre,start_date,end_date,proposed_by,cycle
 - Optional fuer den Detail-Popup: cover_image,buy_link,goodreads_rating,publication_year,page_count
+- Optional fuer Analysen: exclude_from_analysis (true/1/yes/ja schliesst das Buch aus; Tabelle und Details bleiben sichtbar)
 
 Bewertungsdatei:
 - book_id,person,rating

@@ -320,6 +320,7 @@ function normalizeBookRow(row) {
     end_date: String(row.end_date || "").trim(),
     proposed_by: String(row.proposed_by || "").trim(),
     cycle: String(row.cycle || "").trim(),
+    exclude_from_analysis: toBoolean(readFirstField(row, ["exclude_from_analysis", "exclude_analysis"])),
     cover_image: readFirstField(row, ["cover_image", "cover_url", "image_url"]),
     buy_link: readFirstField(row, ["buy_link", "buy_url", "purchase_url"]),
     goodreads_rating: toOptionalNumber(readFirstField(row, ["goodreads_rating", "goodreads", "goodreads_score"])),
@@ -354,39 +355,42 @@ function buildModel(books, ratings) {
     };
   });
 
-  const ratedBooks = bookRows.filter((book) => book.avg !== null);
+  const analysisBookRows = bookRows.filter((book) => !book.exclude_from_analysis);
+  const analysisBookIds = new Set(analysisBookRows.map((book) => book.book_id));
+  const analysisRatings = ratings.filter((rating) => analysisBookIds.has(rating.book_id));
+  const ratedBooks = analysisBookRows.filter((book) => book.avg !== null);
 
   const top3 = [...ratedBooks].sort((a, b) => b.avg - a.avg).slice(0, 3);
   const flop3 = [...ratedBooks].sort((a, b) => a.avg - b.avg).slice(0, 3);
 
-  const genreAvg = groupedAverageWithRows(bookRows, (book) => book.genre, (book) => book.values);
+  const genreAvg = groupedAverageWithRows(analysisBookRows, (book) => book.genre, (book) => book.values);
   const proposerAvg = groupedAverage(
-    bookRows,
+    analysisBookRows,
     (book) => book.proposed_by,
     (book) => book.values
   );
 
   const personScores = KNOWN_MEMBERS.map((member) => {
-    const values = ratings.filter((r) => r.person === member).map((r) => r.rating);
+    const values = analysisRatings.filter((r) => r.person === member).map((r) => r.rating);
     return {
       label: member,
       value: values.length ? average(values) : null,
     };
   }).sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
 
-  const cycleAvg = groupedAverage(bookRows, (book) => book.cycle, (book) => book.values);
+  const cycleAvg = groupedAverage(analysisBookRows, (book) => book.cycle, (book) => book.values);
 
   const withSpread = ratedBooks.filter((book) => book.spread !== null);
   const largestSpread = [...withSpread].sort((a, b) => b.spread - a.spread).slice(0, 3);
   const smallestSpread = [...withSpread].sort((a, b) => a.spread - b.spread).slice(0, 3);
   const clubAverage = ratedBooks.length ? average(ratedBooks.map((book) => book.avg)) : null;
 
-  const allRatingsCount = ratings.length;
-  const highRatingsCount = ratings.filter((r) => r.rating > 7).length;
+  const allRatingsCount = analysisRatings.length;
+  const highRatingsCount = analysisRatings.filter((r) => r.rating > 7).length;
   const highRatingsPct = allRatingsCount > 0 ? (highRatingsCount / allRatingsCount) * 100 : null;
 
   const ratingsByPerson = new Map();
-  ratings.forEach((r) => {
+  analysisRatings.forEach((r) => {
     if (!ratingsByPerson.has(r.person)) ratingsByPerson.set(r.person, new Map());
     ratingsByPerson.get(r.person).set(r.book_id, r.rating);
   });
@@ -446,7 +450,7 @@ function buildModel(books, ratings) {
     trendWithFlow,
     trendAgainstFlow,
     summary: {
-      totalBooks: bookRows.length,
+      totalBooks: analysisBookRows.length,
       clubAverage,
       highRatingsPct,
       polarizingBook: largestSpread[0] || null,
@@ -1106,6 +1110,10 @@ function toOptionalNumber(value) {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toBoolean(value) {
+  return ["true", "1", "yes", "ja"].includes(String(value).trim().toLowerCase());
 }
 
 function setStatus(text) {
